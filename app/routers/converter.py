@@ -6,7 +6,7 @@ from ..config import ALLOWED_FORMATS
 router = APIRouter()
 
 @router.get("/download/{video_id}/{format}")
-async def download_video(video_id: str, format: str, background_tasks: BackgroundTasks):
+async def download_video(video_id: str, format: str, background_tasks: BackgroundTasks, browser: str):
     if format not in ALLOWED_FORMATS:
         raise HTTPException(
             status_code=400,
@@ -23,7 +23,7 @@ async def download_video(video_id: str, format: str, background_tasks: Backgroun
     video_title = video_info['title'].replace('/', '_')
 
     # Descargar el audio del video en el formato deseado
-    audio_file = video_service.download_audio(video_url, format)
+    audio_file = video_service.download_audio(video_url, format, browser)
 
     # Programar la limpieza del archivo después de enviar la respuesta
     background_tasks.add_task(video_service.cleanup_file, audio_file)

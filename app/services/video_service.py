@@ -4,13 +4,14 @@ import os
 import uuid
 from ..config import TEMP_DIR, ALLOWED_FORMATS
 
-def download_audio(url: str, format: str) -> str:
+def download_audio(url: str, format: str, browser: str = "brave") -> str:
     """
     Descarga el audio del video en el formato especificado y retorna la ruta del archivo.
     
     Args:
         url (str): URL del video a descargar.
         format (str): Formato de audio deseado (mp3, wav, etc.).
+        browser (str): Nombre del navegador desde el cual extraer las cookies (opcional).
         
     Returns:
         str: Ruta del archivo de audio descargado.
@@ -34,6 +35,9 @@ def download_audio(url: str, format: str) -> str:
         }],
     }
     
+    if browser:
+        ydl_opts['cookiesfrombrowser'] = (browser,)
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url)
@@ -44,8 +48,8 @@ def download_audio(url: str, format: str) -> str:
             audio_file = f"{base}.{format}"
             return audio_file
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error downloading audio: {str(e)}")
-    
+        print(f"Error downloading audio: {e}")
+        raise HTTPException(status_code=500, detail="Error downloading audio")
 
 def get_video_info(video_url: str) -> dict:
     ydl_opts = {}
@@ -59,6 +63,16 @@ def get_video_info(video_url: str) -> dict:
         }
     return video_info
 
+def validate_url(video_url: str) -> bool:
+    ydl_opts = {}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.extract_info(video_url, download=False)
+            return True
+    except yt_dlp.utils.DownloadError:
+        return False
+    except Exception:
+        return False
 
 def cleanup_file(file_path: str):
     try:
@@ -66,16 +80,3 @@ def cleanup_file(file_path: str):
             os.remove(file_path)
     except Exception as e:
         print(f"Error removing file {file_path}: {e}")
-
-
-def validate_url(video_url: str) -> bool:
-    ydl_opts = {}
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # Intentar extraer información del video sin descargarlo
-            ydl.extract_info(video_url, download=False)
-            return True
-    except yt_dlp.DownloadError:
-        return False
-    except Exception:
-        return False
